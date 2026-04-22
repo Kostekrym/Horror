@@ -58,13 +58,11 @@ animation:flash 0.5s infinite;
 <script>
 
 // =====================
-// AUDIO (tło + kroki)
+// 🔇 AUDIO OFF (NO PIKANIE)
 // =====================
-let ambient = new Audio("https://www.fesliyanstudios.com/play-mp3/4386");
-ambient.loop = true;
-ambient.volume = 0.15;
-
-let stepSound = new Audio("https://www.fesliyanstudios.com/play-mp3/387");
+let ambient = new Audio();
+let stepSound = new Audio();
+let scareSound = new Audio();
 
 // =====================
 // SCENA
@@ -114,6 +112,17 @@ walls.push(wall);
 });
 
 // =====================
+// PORTAL (WYJŚCIE)
+// =====================
+let portal = new THREE.Mesh(
+new THREE.TorusGeometry(1,0.4,16,32),
+new THREE.MeshBasicMaterial({color:0x00aaff})
+);
+
+portal.position.set(52,2,52);
+scene.add(portal);
+
+// =====================
 // KOLIZJA
 // =====================
 function isColliding(x,z){
@@ -126,24 +135,22 @@ return false;
 }
 
 // =====================
-// LATARKA (miganie)
+// LATARKA
 // =====================
 let flashlight = new THREE.SpotLight(0xffffff,2,20,Math.PI/6,0.5);
 scene.add(flashlight);
 let flashlightOn = true;
 
 // =====================
-// 👁️ POTWÓR (OKO)
+// 👁️ POTWÓR
 // =====================
 let eyeGroup = new THREE.Group();
 
-// oko
 let eyeWhite = new THREE.Mesh(
 new THREE.SphereGeometry(1.5,32,32),
 new THREE.MeshBasicMaterial({color:0xffffff})
 );
 
-// źrenica
 let pupil = new THREE.Mesh(
 new THREE.SphereGeometry(0.5,32,32),
 new THREE.MeshBasicMaterial({color:0x000000})
@@ -175,7 +182,6 @@ keys[e.key.toLowerCase()]=false;
 // start
 document.body.onclick=()=>{
 document.body.requestPointerLock();
-ambient.play();
 };
 
 // =====================
@@ -211,19 +217,11 @@ camera.position.x=newX;
 camera.position.z=newZ;
 }
 
-// kroki
-if(keys["w"]||keys["a"]||keys["s"]||keys["d"]){
-if(Math.random()<0.02){
-stepSound.currentTime=0;
-stepSound.play();
-}
-}
-
 // rotacja
 camera.rotation.set(pitch,yaw,0);
 
 // =====================
-// AI (CHASE OKA)
+// 👁️ AI CHASE
 // =====================
 let dx = camera.position.x - monster.position.x;
 let dz = camera.position.z - monster.position.z;
@@ -243,8 +241,6 @@ monster.position.z = nextZ;
 }
 
 monster.lookAt(camera.position);
-
-// źrenica patrzy na gracza
 pupil.lookAt(camera.position);
 
 // =====================
@@ -282,12 +278,11 @@ flashlight.intensity = 0;
 }
 
 // =====================
-// 💀 GAME OVER (CZERWONY EKRAN)
+// 💀 LOSE
 // =====================
 if(dist < 1.5){
 
 document.getElementById("gameover").style.display="flex";
-ambient.pause();
 
 setTimeout(()=>{
 location.reload();
@@ -295,8 +290,24 @@ location.reload();
 
 }
 
-// napięcie
-ambient.volume = Math.max(0.2, 1 - dist/20);
+// =====================
+// 🟦 WIN (PORTAL)
+// =====================
+let px = camera.position.x - portal.position.x;
+let pz = camera.position.z - portal.position.z;
+
+let pdist = Math.sqrt(px*px + pz*pz);
+
+if(pdist < 2){
+
+document.getElementById("gameover").style.display="flex";
+document.getElementById("text").innerText = "YOU ESCAPED";
+
+setTimeout(()=>{
+location.reload();
+},3000);
+
+}
 
 }
 
