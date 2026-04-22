@@ -1,7 +1,8 @@
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Eye Maze Horror FINAL</title>
+<title>Eye Maze Horror FULL AUDIO FIX</title>
 
 <style>
 body { margin:0; overflow:hidden; background:black; }
@@ -57,27 +58,11 @@ let gameOver = false;
 let gameWon = false;
 
 // =====================
-// 🔊 STABILNY SZUM (WEB AUDIO API)
+// 🔊 AUDIO (PEWNY SZUM)
 // =====================
-let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let noiseGain = audioCtx.createGain();
-noiseGain.gain.value = 0;
-
-let bufferSize = 2 * audioCtx.sampleRate;
-let noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-let output = noiseBuffer.getChannelData(0);
-
-for (let i = 0; i < bufferSize; i++) {
-output[i] = (Math.random() * 2 - 1) * 0.5;
-}
-
-let whiteNoise = audioCtx.createBufferSource();
-whiteNoise.buffer = noiseBuffer;
-whiteNoise.loop = true;
-
-whiteNoise.connect(noiseGain);
-noiseGain.connect(audioCtx.destination);
-whiteNoise.start();
+let audioCtx;
+let noiseNode;
+let noiseGain;
 
 // =====================
 // SCENE
@@ -198,11 +183,34 @@ keys[e.key.toLowerCase()]=false;
 });
 
 // =====================
-// START (AUDIO FIX)
+// 🔊 START AUDIO (CLICK REQUIRED)
 // =====================
 document.body.onclick=()=>{
+
 document.body.requestPointerLock();
-audioCtx.resume();
+
+// audio init
+audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+noiseGain = audioCtx.createGain();
+noiseGain.gain.value = 0.2;
+noiseGain.connect(audioCtx.destination);
+
+let bufferSize = audioCtx.sampleRate * 2;
+let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+let data = buffer.getChannelData(0);
+
+for(let i=0;i<bufferSize;i++){
+data[i] = Math.random()*2 - 1;
+}
+
+noiseNode = audioCtx.createBufferSource();
+noiseNode.buffer = buffer;
+noiseNode.loop = true;
+
+noiseNode.connect(noiseGain);
+noiseNode.start();
+
 };
 
 // =====================
@@ -298,9 +306,11 @@ flashlight.intensity = 0;
 }
 
 // =====================
-// 🔊 STABILNY SZUM (DZIAŁA ZAWSZE)
+// 🔊 WORKING NOISE CONTROL
 // =====================
-noiseGain.gain.value = Math.max(0, 1 - dist / 20);
+if(noiseGain){
+noiseGain.gain.value = Math.max(0, 0.05 + (1 - dist/20) * 0.6);
+}
 
 // =====================
 // LOSE
