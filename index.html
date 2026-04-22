@@ -1,31 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Eye Maze Horror</title>
 
-<style>
-body { margin:0; overflow:hidden; background:black; }
-
-#info{
-position:absolute;
-top:10px; left:10px;
-color:white;
-background:rgba(0,0,0,0.6);
 padding:10px;
 font-family:monospace;
 }
 
-#gameover{
+#screen{
 position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
+top:0; left:0;
+width:100%; height:100%;
 display:none;
 justify-content:center;
 align-items:center;
-background:darkred;
 z-index:999;
 }
 
@@ -33,7 +17,6 @@ z-index:999;
 color:white;
 font-size:40px;
 font-family:monospace;
-letter-spacing:3px;
 animation:flash 0.5s infinite;
 }
 
@@ -49,23 +32,28 @@ animation:flash 0.5s infinite;
 
 <div id="info">WASD | Mysz | F = latarka | UCIEKAJ 👁️</div>
 
-<div id="gameover">
-<div id="text">YOU WERE CAUGHT</div>
-</div>
+<div id="screen"><div id="text"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
 
 <script>
 
 // =====================
-// 🔇 AUDIO OFF (NO PIKANIE)
+// STATE
 // =====================
-let ambient = new Audio();
-let stepSound = new Audio();
-let scareSound = new Audio();
+let gameOver = false;
+let gameWon = false;
 
 // =====================
-// SCENA
+// AUDIO (CLEAN)
+// =====================
+let noise = new Audio("https://www.fesliyanstudios.com/play-mp3/4382");
+noise.loop = true;
+noise.volume = 0;
+noise.play();
+
+// =====================
+// SCENE
 // =====================
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x000000, 5, 25);
@@ -112,18 +100,17 @@ walls.push(wall);
 });
 
 // =====================
-// PORTAL (WYJŚCIE)
+// PORTAL
 // =====================
 let portal = new THREE.Mesh(
 new THREE.TorusGeometry(1,0.4,16,32),
 new THREE.MeshBasicMaterial({color:0x00aaff})
 );
-
 portal.position.set(52,2,52);
 scene.add(portal);
 
 // =====================
-// KOLIZJA
+// COLLISION
 // =====================
 function isColliding(x,z){
 for(let w of walls){
@@ -135,14 +122,14 @@ return false;
 }
 
 // =====================
-// LATARKA
+// FLASHLIGHT
 // =====================
 let flashlight = new THREE.SpotLight(0xffffff,2,20,Math.PI/6,0.5);
 scene.add(flashlight);
 let flashlightOn = true;
 
 // =====================
-// 👁️ POTWÓR
+// MONSTER (EYE)
 // =====================
 let eyeGroup = new THREE.Group();
 
@@ -175,6 +162,7 @@ document.addEventListener("keydown",e=>{
 keys[e.key.toLowerCase()]=true;
 if(e.key==="f") flashlightOn=!flashlightOn;
 });
+
 document.addEventListener("keyup",e=>{
 keys[e.key.toLowerCase()]=false;
 });
@@ -185,7 +173,7 @@ document.body.requestPointerLock();
 };
 
 // =====================
-// MYSZ
+// MOUSE
 // =====================
 let yaw=0,pitch=0;
 
@@ -202,7 +190,11 @@ pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
 // =====================
 function update(){
 
-// ===== RUCH =====
+if(gameOver || gameWon) return;
+
+// =====================
+// MOVE
+// =====================
 let speed=0.1;
 let newX=camera.position.x;
 let newZ=camera.position.z;
@@ -217,17 +209,15 @@ camera.position.x=newX;
 camera.position.z=newZ;
 }
 
-// rotacja
 camera.rotation.set(pitch,yaw,0);
 
 // =====================
-// 👁️ AI CHASE
+// MONSTER AI
 // =====================
 let dx = camera.position.x - monster.position.x;
 let dz = camera.position.z - monster.position.z;
 let dist = Math.sqrt(dx*dx + dz*dz);
 
-// ruch
 let speedAI = 0.03;
 if(dist < 10) speedAI = 0.05;
 if(dist < 5) speedAI = 0.08;
@@ -244,12 +234,11 @@ monster.lookAt(camera.position);
 pupil.lookAt(camera.position);
 
 // =====================
-// 🔦 LATARKA (MIGANIE)
+// FLASHLIGHT FLICKER
 // =====================
 if(flashlightOn){
 
 let flicker = 0;
-
 if(dist < 15) flicker = 0.05;
 if(dist < 10) flicker = 0.1;
 if(dist < 6) flicker = 0.2;
@@ -278,40 +267,45 @@ flashlight.intensity = 0;
 }
 
 // =====================
-// 💀 LOSE
+// NOISE (HUNT AUDIO)
+// =====================
+noise.volume = Math.max(0, 1 - dist/20);
+
+// =====================
+// LOSE
 // =====================
 if(dist < 1.5){
 
-document.getElementById("gameover").style.display="flex";
+gameOver = true;
 
-setTimeout(()=>{
-location.reload();
-},2000);
+document.getElementById("screen").style.display="flex";
+document.getElementById("screen").style.background="darkred";
+document.getElementById("text").innerText="YOU WERE CAUGHT";
 
+setTimeout(()=>location.reload(),2000);
 }
 
 // =====================
-// 🟦 WIN (PORTAL)
+// WIN (PORTAL)
 // =====================
 let px = camera.position.x - portal.position.x;
 let pz = camera.position.z - portal.position.z;
-
 let pdist = Math.sqrt(px*px + pz*pz);
 
 if(pdist < 2){
 
-document.getElementById("gameover").style.display="flex";
-document.getElementById("text").innerText = "YOU ESCAPED";
+gameWon = true;
 
-setTimeout(()=>{
-location.reload();
-},3000);
+document.getElementById("screen").style.display="flex";
+document.getElementById("screen").style.background="green";
+document.getElementById("text").innerText="YOU ESCAPED";
 
+setTimeout(()=>location.reload(),3000);
 }
 
 }
 
-// LOOP
+// =====================
 function animate(){
 requestAnimationFrame(animate);
 update();
