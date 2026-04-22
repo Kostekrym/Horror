@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Night Facility - Slender Horror</title>
+<title>Maze Horror</title>
 <style>
 body { margin:0; overflow:hidden; background:black; }
 #info {
@@ -45,128 +45,136 @@ object-fit:cover;
 
 <script>
 
-// =====================
 // AUDIO
-// =====================
 let ambient = new Audio("https://www.fesliyanstudios.com/play-mp3/4386");
 ambient.loop = true;
 ambient.volume = 0.3;
 
 let stepSound = new Audio("https://www.fesliyanstudios.com/play-mp3/387");
-stepSound.volume = 0.2;
-
 let scareSound = new Audio("https://www.fesliyanstudios.com/play-mp3/6674");
 
-// =====================
 // SCENA
-// =====================
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x000000, 5, 25);
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(0,2,5);
+camera.position.set(4,2,4);
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// =====================
 // PODŁOGA
-// =====================
 const floor = new THREE.Mesh(
-new THREE.PlaneGeometry(100,100),
+new THREE.PlaneGeometry(200,200),
 new THREE.MeshBasicMaterial({color:0x111111})
 );
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
 // =====================
-// ŚCIANY
+// LABIRYNT
 // =====================
-for(let i=0;i<30;i++){
+let maze = [
+"111111111111111",
+"100000000000001",
+"101111011111101",
+"101000010000101",
+"101011110111101",
+"100010000100001",
+"111010111101111",
+"100000100000001",
+"101111101111101",
+"100000000000001",
+"111111111111111"
+];
+
+let walls = [];
+let size = 4;
+
+maze.forEach((row,z)=>{
+[...row].forEach((cell,x)=>{
+if(cell==="1"){
 let wall = new THREE.Mesh(
-new THREE.BoxGeometry(2,4,2),
+new THREE.BoxGeometry(size,4,size),
 new THREE.MeshBasicMaterial({color:0x222222})
 );
-wall.position.set(Math.random()*40-20,2,Math.random()*40-20);
+wall.position.set(x*size,2,z*size);
 scene.add(wall);
+walls.push(wall);
 }
+});
+});
 
 // =====================
-// LATARKA
+// KOLIZJA
 // =====================
+function isColliding(x,z){
+for(let w of walls){
+let dx = Math.abs(x - w.position.x);
+let dz = Math.abs(z - w.position.z);
+if(dx < 2 && dz < 2) return true;
+}
+return false;
+}
+
+// LATARKA
 let flashlight = new THREE.SpotLight(0xffffff,2,20,Math.PI/6,0.5);
 scene.add(flashlight);
 let flashlightOn = true;
 
-// =====================
-// POTWÓR (SLENDER)
-// =====================
+// POTWÓR
 let monster = new THREE.Mesh(
 new THREE.CylinderGeometry(0.5,0.5,4,8),
 new THREE.MeshBasicMaterial({color:0xffffff})
 );
-monster.position.set(10,2,10);
+monster.position.set(20,2,20);
 scene.add(monster);
 
-// =====================
 // INPUT
-// =====================
 let keys={};
 
 document.addEventListener("keydown",e=>{
 keys[e.key.toLowerCase()]=true;
-
-if(e.key==="f") flashlightOn = !flashlightOn;
+if(e.key==="f") flashlightOn=!flashlightOn;
 });
-
 document.addEventListener("keyup",e=>{
 keys[e.key.toLowerCase()]=false;
 });
 
-// klik = start + audio
+// START
 document.body.onclick=()=>{
 document.body.requestPointerLock();
 ambient.play();
 };
 
-// =====================
 // MYSZ
-// =====================
-let yaw=0, pitch=0;
+let yaw=0,pitch=0;
 
 document.addEventListener("mousemove",e=>{
 if(document.pointerLockElement===document.body){
 yaw -= e.movementX*0.002;
 pitch -= e.movementY*0.002;
-
 pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
 }
 });
 
-// =====================
 // UPDATE
-// =====================
 function update(){
 
-// ===== RUCH =====
+// RUCH + KOLIZJA
 let speed=0.1;
+let newX=camera.position.x;
+let newZ=camera.position.z;
 
-if(keys["w"]){
-camera.position.x -= Math.sin(yaw)*speed;
-camera.position.z -= Math.cos(yaw)*speed;
-}
-if(keys["s"]){
-camera.position.x += Math.sin(yaw)*speed;
-camera.position.z += Math.cos(yaw)*speed;
-}
-if(keys["a"]){
-camera.position.x -= Math.cos(yaw)*speed;
-camera.position.z += Math.sin(yaw)*speed;
-}
-if(keys["d"]){
-camera.position.x += Math.cos(yaw)*speed;
-camera.position.z -= Math.sin(yaw)*speed;
+if(keys["w"]){ newX-=Math.sin(yaw)*speed; newZ-=Math.cos(yaw)*speed; }
+if(keys["s"]){ newX+=Math.sin(yaw)*speed; newZ+=Math.cos(yaw)*speed; }
+if(keys["a"]){ newX-=Math.cos(yaw)*speed; newZ+=Math.sin(yaw)*speed; }
+if(keys["d"]){ newX+=Math.cos(yaw)*speed; newZ-=Math.sin(yaw)*speed; }
+
+if(!isColliding(newX,newZ)){
+camera.position.x=newX;
+camera.position.z=newZ;
 }
 
 // kroki
@@ -180,7 +188,7 @@ stepSound.play();
 // rotacja
 camera.rotation.set(pitch,yaw,0);
 
-// ===== LATARKA =====
+// LATARKA
 if(flashlightOn){
 flashlight.intensity=2;
 flashlight.position.copy(camera.position);
@@ -194,23 +202,18 @@ scene.add(flashlight.target);
 flashlight.intensity=0;
 }
 
-// ===== AI SLENDER =====
+// AI SLENDER
 let dx = monster.position.x - camera.position.x;
 let dz = monster.position.z - camera.position.z;
-
 let dist = Math.sqrt(dx*dx + dz*dz);
 
-// czy patrzysz
 let lookX = -Math.sin(yaw);
 let lookZ = -Math.cos(yaw);
-
 let dot = dx*lookX + dz*lookZ;
 let looking = dot>0;
 
-// znika gdy patrzysz
 monster.visible = !looking;
 
-// teleport za plecy
 if(dist>10 && !looking){
 monster.position.set(
 camera.position.x + Math.sin(yaw)*8,
@@ -219,7 +222,6 @@ camera.position.z + Math.cos(yaw)*8
 );
 }
 
-// powolne zbliżanie
 if(!looking){
 monster.position.x += (camera.position.x - monster.position.x)*0.005;
 monster.position.z += (camera.position.z - monster.position.z)*0.005;
@@ -227,25 +229,17 @@ monster.position.z += (camera.position.z - monster.position.z)*0.005;
 
 // jumpscare
 if(dist<1.2 && !looking){
-
 document.getElementById("jumpscare").style.display="flex";
 scareSound.play();
-
-renderer.domElement.style.filter="brightness(5)";
-
-setTimeout(()=>{
-location.reload();
-},1500);
+setTimeout(()=>location.reload(),1500);
 }
 
-// napięcie audio
+// napięcie
 ambient.volume = Math.max(0.1, 1 - dist/20);
 
 }
 
-// =====================
 // LOOP
-// =====================
 function animate(){
 requestAnimationFrame(animate);
 update();
