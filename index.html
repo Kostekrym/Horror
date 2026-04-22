@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Maze Horror</title>
+<title>Maze Horror Chase</title>
 <style>
 body { margin:0; overflow:hidden; background:black; }
 #info {
@@ -35,10 +35,10 @@ object-fit:cover;
 </head>
 <body>
 
-<div id="info">Kliknij → WASD | Mysz | F = latarka</div>
+<div id="info">Kliknij → WASD | Mysz | F = latarka | UCIEKAJ 😈</div>
 
 <div id="jumpscare">
-<img src="https://i.imgur.com/3ZQ3Z6L.png">
+<img src="https://i.imgur.com/8Q2Qw6F.png">
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
@@ -72,9 +72,7 @@ new THREE.MeshBasicMaterial({color:0x111111})
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
-// =====================
 // LABIRYNT
-// =====================
 let maze = [
 "111111111111111",
 "100000000000001",
@@ -106,9 +104,7 @@ walls.push(wall);
 });
 });
 
-// =====================
 // KOLIZJA
-// =====================
 function isColliding(x,z){
 for(let w of walls){
 let dx = Math.abs(x - w.position.x);
@@ -123,10 +119,10 @@ let flashlight = new THREE.SpotLight(0xffffff,2,20,Math.PI/6,0.5);
 scene.add(flashlight);
 let flashlightOn = true;
 
-// POTWÓR
+// POTWÓR (teraz bardziej widoczny)
 let monster = new THREE.Mesh(
-new THREE.CylinderGeometry(0.5,0.5,4,8),
-new THREE.MeshBasicMaterial({color:0xffffff})
+new THREE.BoxGeometry(1.5,3,1.5),
+new THREE.MeshBasicMaterial({color:0xff0000})
 );
 monster.position.set(20,2,20);
 scene.add(monster);
@@ -162,7 +158,7 @@ pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
 // UPDATE
 function update(){
 
-// RUCH + KOLIZJA
+// RUCH
 let speed=0.1;
 let newX=camera.position.x;
 let newZ=camera.position.z;
@@ -202,33 +198,33 @@ scene.add(flashlight.target);
 flashlight.intensity=0;
 }
 
-// AI SLENDER
-let dx = monster.position.x - camera.position.x;
-let dz = monster.position.z - camera.position.z;
+// =====================
+// 🔥 CHASE AI
+// =====================
+let dx = camera.position.x - monster.position.x;
+let dz = camera.position.z - monster.position.z;
+
 let dist = Math.sqrt(dx*dx + dz*dz);
 
-let lookX = -Math.sin(yaw);
-let lookZ = -Math.cos(yaw);
-let dot = dx*lookX + dz*lookZ;
-let looking = dot>0;
+// prędkość rośnie gdy bliżej
+let speedAI = 0.02;
+if(dist < 10) speedAI = 0.04;
+if(dist < 5) speedAI = 0.07;
 
-monster.visible = !looking;
+// ruch z kolizją
+let nextX = monster.position.x + dx * speedAI;
+let nextZ = monster.position.z + dz * speedAI;
 
-if(dist>10 && !looking){
-monster.position.set(
-camera.position.x + Math.sin(yaw)*8,
-2,
-camera.position.z + Math.cos(yaw)*8
-);
+if(!isColliding(nextX,nextZ)){
+monster.position.x = nextX;
+monster.position.z = nextZ;
 }
 
-if(!looking){
-monster.position.x += (camera.position.x - monster.position.x)*0.005;
-monster.position.z += (camera.position.z - monster.position.z)*0.005;
-}
+// zawsze patrzy na gracza
+monster.lookAt(camera.position);
 
 // jumpscare
-if(dist<1.2 && !looking){
+if(dist < 1.2){
 document.getElementById("jumpscare").style.display="flex";
 scareSound.play();
 setTimeout(()=>location.reload(),1500);
