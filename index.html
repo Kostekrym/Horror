@@ -1,38 +1,3 @@
-<meta charset="UTF-8">
-<title>Eye Maze Horror FULL FIX</title>
-
-<style>
-body { margin:0; overflow:hidden; background:black; }
-
-#info{
-position:absolute;
-top:10px; left:10px;
-color:white;
-background:rgba(0,0,0,0.6);
-padding:10px;
-font-family:monospace;
-}
-
-#screen{
-position:fixed;
-top:0; left:0;
-width:100%; height:100%;
-display:none;
-justify-content:center;
-align-items:center;
-z-index:999;
-}
-
-#text{
-color:white;
-font-size:40px;
-font-family:monospace;
-animation:flash 0.5s infinite;
-}
-
-@keyframes flash{
-0%{opacity:1;}
-50%{opacity:0.3;}
 100%{opacity:1;}
 }
 </style>
@@ -55,7 +20,7 @@ let gameOver = false;
 let gameWon = false;
 
 // =====================
-// 🔊 AUDIO (NAPRAWIONY SZUM)
+// AUDIO (working noise)
 // =====================
 let noise = new Audio("https://cdn.pixabay.com/download/audio/2022/10/25/audio_6c4d3a1a0a.mp3?filename=dark-ambient-110989.mp3");
 noise.loop = true;
@@ -109,14 +74,21 @@ walls.push(wall);
 });
 
 // =====================
-// PORTAL
+// PORTAL (FIXED POSITION)
 // =====================
 let portal = new THREE.Mesh(
 new THREE.TorusGeometry(1,0.4,16,32),
 new THREE.MeshBasicMaterial({color:0x00aaff})
 );
-portal.position.set(52,2,52);
+
+// 🔵 W ŚRODKU LABIRYNTU (PEWNE MIEJSCE)
+portal.position.set(10*4,2,9*4); // ~ (40,2,36)
+
 scene.add(portal);
+
+// glow
+let portalLight = new THREE.PointLight(0x00aaff,2,20);
+portal.add(portalLight);
 
 // =====================
 // COLLISION
@@ -138,7 +110,7 @@ scene.add(flashlight);
 let flashlightOn = true;
 
 // =====================
-// 👁️ MONSTER (EYE)
+// 👁️ MONSTER
 // =====================
 let eye = new THREE.Group();
 
@@ -175,9 +147,7 @@ document.addEventListener("keyup",e=>{
 keys[e.key.toLowerCase()]=false;
 });
 
-// =====================
-// START (FIX AUDIO HERE)
-// =====================
+// start + audio fix
 document.body.onclick=()=>{
 document.body.requestPointerLock();
 noise.play();
@@ -203,9 +173,7 @@ function update(){
 
 if(gameOver || gameWon) return;
 
-// =====================
 // MOVE
-// =====================
 let speed=0.1;
 let newX=camera.position.x;
 let newZ=camera.position.z;
@@ -245,7 +213,7 @@ monster.lookAt(camera.position);
 pupil.lookAt(camera.position);
 
 // =====================
-// FLASHLIGHT FLICKER
+// FLASHLIGHT
 // =====================
 if(flashlightOn){
 
@@ -278,7 +246,7 @@ flashlight.intensity = 0;
 }
 
 // =====================
-// 🔊 NOISE (WORKING)
+// NOISE
 // =====================
 noise.volume = Math.max(0, 1 - dist/20);
 
@@ -297,7 +265,7 @@ setTimeout(()=>location.reload(),2000);
 }
 
 // =====================
-// WIN
+// WIN (PORTAL FIXED)
 // =====================
 let px = camera.position.x - portal.position.x;
 let pz = camera.position.z - portal.position.z;
