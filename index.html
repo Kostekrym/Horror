@@ -2,35 +2,21 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Maze Horror Chase</title>
+<title>Maze Horror – Chase + Flicker</title>
 <style>
 body { margin:0; overflow:hidden; background:black; }
 #info {
 position:absolute;
-top:10px;
-left:10px;
-color:white;
-background:rgba(0,0,0,0.6);
-padding:10px;
-font-family:monospace;
+top:10px; left:10px;
+color:white; background:rgba(0,0,0,0.6);
+padding:10px; font-family:monospace;
 }
 #jumpscare{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-display:none;
-justify-content:center;
-align-items:center;
-background:black;
-z-index:999;
+position:fixed; top:0; left:0; width:100%; height:100%;
+display:none; justify-content:center; align-items:center;
+background:black; z-index:999;
 }
-#jumpscare img{
-width:100%;
-height:100%;
-object-fit:cover;
-}
+#jumpscare img{ width:100%; height:100%; object-fit:cover; }
 </style>
 </head>
 <body>
@@ -45,7 +31,9 @@ object-fit:cover;
 
 <script>
 
+// =====================
 // AUDIO
+// =====================
 let ambient = new Audio("https://www.fesliyanstudios.com/play-mp3/4386");
 ambient.loop = true;
 ambient.volume = 0.3;
@@ -53,7 +41,9 @@ ambient.volume = 0.3;
 let stepSound = new Audio("https://www.fesliyanstudios.com/play-mp3/387");
 let scareSound = new Audio("https://www.fesliyanstudios.com/play-mp3/6674");
 
+// =====================
 // SCENA
+// =====================
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x000000, 5, 25);
 
@@ -64,7 +54,9 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// =====================
 // PODŁOGA
+// =====================
 const floor = new THREE.Mesh(
 new THREE.PlaneGeometry(200,200),
 new THREE.MeshBasicMaterial({color:0x111111})
@@ -72,7 +64,9 @@ new THREE.MeshBasicMaterial({color:0x111111})
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
+// =====================
 // LABIRYNT
+// =====================
 let maze = [
 "111111111111111",
 "100000000000001",
@@ -104,7 +98,9 @@ walls.push(wall);
 });
 });
 
+// =====================
 // KOLIZJA
+// =====================
 function isColliding(x,z){
 for(let w of walls){
 let dx = Math.abs(x - w.position.x);
@@ -114,12 +110,16 @@ if(dx < 2 && dz < 2) return true;
 return false;
 }
 
+// =====================
 // LATARKA
+// =====================
 let flashlight = new THREE.SpotLight(0xffffff,2,20,Math.PI/6,0.5);
 scene.add(flashlight);
 let flashlightOn = true;
 
-// POTWÓR (teraz bardziej widoczny)
+// =====================
+// POTWÓR
+// =====================
 let monster = new THREE.Mesh(
 new THREE.BoxGeometry(1.5,3,1.5),
 new THREE.MeshBasicMaterial({color:0xff0000})
@@ -127,7 +127,9 @@ new THREE.MeshBasicMaterial({color:0xff0000})
 monster.position.set(20,2,20);
 scene.add(monster);
 
+// =====================
 // INPUT
+// =====================
 let keys={};
 
 document.addEventListener("keydown",e=>{
@@ -138,13 +140,15 @@ document.addEventListener("keyup",e=>{
 keys[e.key.toLowerCase()]=false;
 });
 
-// START
+// start
 document.body.onclick=()=>{
 document.body.requestPointerLock();
 ambient.play();
 };
 
+// =====================
 // MYSZ
+// =====================
 let yaw=0,pitch=0;
 
 document.addEventListener("mousemove",e=>{
@@ -155,10 +159,12 @@ pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
 }
 });
 
+// =====================
 // UPDATE
+// =====================
 function update(){
 
-// RUCH
+// ===== RUCH + KOLIZJA =====
 let speed=0.1;
 let newX=camera.position.x;
 let newZ=camera.position.z;
@@ -184,34 +190,32 @@ stepSound.play();
 // rotacja
 camera.rotation.set(pitch,yaw,0);
 
-// LATARKA
-if(flashlightOn){
-flashlight.intensity=2;
-flashlight.position.copy(camera.position);
-flashlight.target.position.set(
-camera.position.x - Math.sin(yaw),
-camera.position.y,
-camera.position.z - Math.cos(yaw)
-);
-scene.add(flashlight.target);
-}else{
-flashlight.intensity=0;
-}
-
 // =====================
-// 🔥 CHASE AI
+// 🔥 AI POŚCIG + RESPAWN
 // =====================
 let dx = camera.position.x - monster.position.x;
 let dz = camera.position.z - monster.position.z;
-
 let dist = Math.sqrt(dx*dx + dz*dz);
 
-// prędkość rośnie gdy bliżej
-let speedAI = 0.02;
-if(dist < 10) speedAI = 0.04;
-if(dist < 5) speedAI = 0.07;
+// jeśli za daleko → spawn przed graczem
+if(dist > 25){
+let angle = yaw + (Math.random()*1 - 0.5);
+let spawnDist = 8 + Math.random()*5;
 
-// ruch z kolizją
+let spawnX = camera.position.x - Math.sin(angle)*spawnDist;
+let spawnZ = camera.position.z - Math.cos(angle)*spawnDist;
+
+if(!isColliding(spawnX,spawnZ)){
+monster.position.set(spawnX,2,spawnZ);
+}
+}
+
+// prędkość
+let speedAI = 0.03;
+if(dist < 10) speedAI = 0.05;
+if(dist < 5) speedAI = 0.08;
+
+// ruch
 let nextX = monster.position.x + dx * speedAI;
 let nextZ = monster.position.z + dz * speedAI;
 
@@ -220,22 +224,57 @@ monster.position.x = nextX;
 monster.position.z = nextZ;
 }
 
-// zawsze patrzy na gracza
 monster.lookAt(camera.position);
 
-// jumpscare
-if(dist < 1.2){
+// =====================
+// 🔦 LATARKA (MIGANIE)
+// =====================
+if(flashlightOn){
+
+let flickerChance = 0;
+
+if(dist < 15) flickerChance = 0.05;
+if(dist < 10) flickerChance = 0.1;
+if(dist < 6) flickerChance = 0.2;
+if(dist < 3) flickerChance = 0.4;
+
+if(Math.random() < flickerChance){
+flashlight.intensity = Math.random()*2;
+}else{
+flashlight.intensity = 2;
+}
+
+if(dist < 2){
+flashlight.intensity = 0.2 + Math.random()*0.3;
+}
+
+flashlight.position.copy(camera.position);
+flashlight.target.position.set(
+camera.position.x - Math.sin(yaw),
+camera.position.y,
+camera.position.z - Math.cos(yaw)
+);
+scene.add(flashlight.target);
+
+}else{
+flashlight.intensity = 0;
+}
+
+// =====================
+// 💀 JUMPSCARE
+// =====================
+if(dist < 1.5){
 document.getElementById("jumpscare").style.display="flex";
 scareSound.play();
 setTimeout(()=>location.reload(),1500);
 }
 
-// napięcie
-ambient.volume = Math.max(0.1, 1 - dist/20);
+// napięcie audio
+ambient.volume = Math.max(0.2, 1 - dist/20);
 
 }
 
-// LOOP
+// =====================
 function animate(){
 requestAnimationFrame(animate);
 update();
