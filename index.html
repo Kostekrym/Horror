@@ -1,4 +1,14 @@
+<meta charset="UTF-8">
+<title>Eye Maze Horror FULL FIX</title>
 
+<style>
+body { margin:0; overflow:hidden; background:black; }
+
+#info{
+position:absolute;
+top:10px; left:10px;
+color:white;
+background:rgba(0,0,0,0.6);
 padding:10px;
 font-family:monospace;
 }
@@ -45,12 +55,11 @@ let gameOver = false;
 let gameWon = false;
 
 // =====================
-// AUDIO (CLEAN)
+// 🔊 AUDIO (NAPRAWIONY SZUM)
 // =====================
-let noise = new Audio("https://www.fesliyanstudios.com/play-mp3/4382");
+let noise = new Audio("https://cdn.pixabay.com/download/audio/2022/10/25/audio_6c4d3a1a0a.mp3?filename=dark-ambient-110989.mp3");
 noise.loop = true;
-noise.volume = 0;
-noise.play();
+noise.volume = 0.2;
 
 // =====================
 // SCENE
@@ -129,9 +138,9 @@ scene.add(flashlight);
 let flashlightOn = true;
 
 // =====================
-// MONSTER (EYE)
+// 👁️ MONSTER (EYE)
 // =====================
-let eyeGroup = new THREE.Group();
+let eye = new THREE.Group();
 
 let eyeWhite = new THREE.Mesh(
 new THREE.SphereGeometry(1.5,32,32),
@@ -145,13 +154,13 @@ new THREE.MeshBasicMaterial({color:0x000000})
 
 pupil.position.z = 1.2;
 
-eyeGroup.add(eyeWhite);
-eyeGroup.add(pupil);
+eye.add(eyeWhite);
+eye.add(pupil);
 
-eyeGroup.position.set(20,2,20);
-scene.add(eyeGroup);
+eye.position.set(20,2,20);
+scene.add(eye);
 
-let monster = eyeGroup;
+let monster = eye;
 
 // =====================
 // INPUT
@@ -162,14 +171,16 @@ document.addEventListener("keydown",e=>{
 keys[e.key.toLowerCase()]=true;
 if(e.key==="f") flashlightOn=!flashlightOn;
 });
-
 document.addEventListener("keyup",e=>{
 keys[e.key.toLowerCase()]=false;
 });
 
-// start
+// =====================
+// START (FIX AUDIO HERE)
+// =====================
 document.body.onclick=()=>{
 document.body.requestPointerLock();
+noise.play();
 };
 
 // =====================
@@ -212,7 +223,7 @@ camera.position.z=newZ;
 camera.rotation.set(pitch,yaw,0);
 
 // =====================
-// MONSTER AI
+// AI
 // =====================
 let dx = camera.position.x - monster.position.x;
 let dz = camera.position.z - monster.position.z;
@@ -267,7 +278,7 @@ flashlight.intensity = 0;
 }
 
 // =====================
-// NOISE (HUNT AUDIO)
+// 🔊 NOISE (WORKING)
 // =====================
 noise.volume = Math.max(0, 1 - dist/20);
 
@@ -286,7 +297,7 @@ setTimeout(()=>location.reload(),2000);
 }
 
 // =====================
-// WIN (PORTAL)
+// WIN
 // =====================
 let px = camera.position.x - portal.position.x;
 let pz = camera.position.z - portal.position.z;
@@ -305,7 +316,7 @@ setTimeout(()=>location.reload(),3000);
 
 }
 
-// =====================
+// LOOP
 function animate(){
 requestAnimationFrame(animate);
 update();
